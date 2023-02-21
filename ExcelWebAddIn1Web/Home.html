@@ -29,45 +29,65 @@
     <!-- Office UI Fabric JS and it's components are no longer actively supported. Please see https://aka.ms/PnP-OfficeFabricReact for recommended Patterns and Practices -->
     <!-- <link rel="stylesheet" href="https://appsforoffice.microsoft.com/fabric/2.1.0/fabric.components.min.css"> -->
 
-<body class="ms-Fabric" dir="ltr">
-    <div id="content-main">
+<body class="ms-font-m ms-welcome">
+    <div id="content-header">
         <div class="padding">
-            <br />
-            <div class="ms-font-xxl ms-fontColor-neutralSecondary ms-fontWeight-semilight">Sample</div>
-            <br /><br />
-            <div class="ms-font-xl ms-fontColor-neutralTertiary">Getting Started</div>
-            <p class="ms-font-m-plus ms-fontColor-neutralTertiary" id="template-description"></p>
-            <div class="ms-font-m"><a target="_blank" class="ms-Link ms-Link--hero" href="https://go.microsoft.com/fwlink/?LinkId=276812">Find more samples online...</a></div>
-            <br /><br />
-            
-            <button class="Button Button--primary" id="highlight-button">
-                <span class="Button-icon"><i class="ms-Icon ms-Icon--plus"></i></span>
-                <span class="Button-label" id="button-text"></span>
-                <span class="Button-description" id="button-desc"></span>
-            </button>
+            <h1>Welcome</h1>
         </div>
     </div>
-    <div class="footer">
-        <div class="ms-Grid ms-bgColor-themeSecondary">
-            <div class="ms-Grid-row">
-                <div class="ms-Grid-col ms-u-sm12 ms-u-md12 ms-u-lg12"> <div class="ms-font-xl ms-fontColor-white">Contoso</div></div>
-            </div>
-        </div>
-    </div>
+    <div id="content-main" class="padding">
+        <form name="myForm" action="" method="GET">
+            ticker: <br>
+            <input type="text" name="ticker" value=""><br /><br />
+            start year: <br>
+            <input type="number" name="startyear" value=""><br /><br />
+            end year: <br>
+            <input type="number" name="endyear" value=""><br /><br />
+            facts: <br />
+            <div class="multi-selector">
 
-    <!-- Component used for displaying notifications -->
-    <div class="MessageBanner" id="notification-popup">
-        <div class="MessageBanner-content">
-            <div class="MessageBanner-text">
-                <div class="MessageBanner-clipper">
-                    <div class="ms-font-m-plus ms-fontWeight-semibold" id="notification-header"></div>
-                    <div class="ms-font-m ms-fontWeight-semilight" id="notification-body"></div>
+                <div class="select-field">
+                    <input type="text" name="" placeholder="Choose facts" id="" class="input-selector">
+                    <span class="down-arrow">&blacktriangledown;</span>
                 </div>
-            </div>
-            <button class="MessageBanner-expand" style="display:none"><i class="ms-Icon ms-Icon--chevronsDown"></i> </button>
-            <div class="MessageBanner-action"></div>
-        </div>
-        <button class="MessageBanner-close"> <i class="ms-Icon ms-Icon--ChromeClose"></i> </button>
+                <!---------List of checkboxes and options----------->
+                <div class="list">
+
+                    <label for="task1" class="task">
+                        <input type="checkbox" name="" id="task1">
+                        Fact 1
+                    </label>
+                    <label for="task2" class="task">
+                        <input type="checkbox" name="" id="task2">
+                        Fact 2
+                    </label>
+                    <label for="task3" class="task">
+                        <input type="checkbox" name="" id="task3">
+                        Fact 3
+                    </label>
+                    <label for="task4" class="task">
+                        <input type="checkbox" name="" id="task4">
+                        Fact 4
+                    </label>
+
+                </div>
+
+
+            </div><br />
+
+
+            <script>
+
+
+                document.querySelector('.select-field').addEventListener('click', () => {
+                    document.querySelector('.list').classList.toggle('show');
+                    document.querySelector('.down-arrow').classList.toggle('rotate180');
+
+                });
+
+            </script>
+            <input type="button" name="button" value="Submit" onClick="testResults(this.form)">
+        </form>
     </div>
 </body>
 </html>

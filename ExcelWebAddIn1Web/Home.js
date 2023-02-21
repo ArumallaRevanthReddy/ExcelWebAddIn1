@@ -1,121 +1,129 @@
-﻿(function () {
-    "use strict";
+﻿'use strict';
 
-    var cellToHighlight;
-    var messageBanner;
+function testResults(form) {
+    let startyear = form.startyear.value;
+    let endyear = form.endyear.value;
+    let year = getYearString(startyear, endyear);
 
-    // The initialize function must be run each time a new page is loaded.
-    Office.initialize = function (reason) {
+    Office.onReady(function () {
         $(document).ready(function () {
-            // Initialize the notification mechanism and hide it
-            var element = document.querySelector('.MessageBanner');
-            messageBanner = new components.MessageBanner(element);
-            messageBanner.hideBanner();
-            
-            // If not using Excel 2016, use fallback logic.
-            if (!Office.context.requirements.isSetSupported('ExcelApi', '1.1')) {
-                $("#template-description").text("This sample will display the value of the cells that you have selected in the spreadsheet.");
-                $('#button-text').text("Display!");
-                $('#button-desc').text("Display the selection");
-
-                $('#highlight-button').click(displaySelectedCells);
-                return;
-            }
-
-            $("#template-description").text("This sample highlights the highest value from the cells you have selected in the spreadsheet.");
-            $('#button-text').text("Highlight!");
-            $('#button-desc').text("Highlights the largest number.");
-                
-            loadSampleData();
-
-            // Add a click event handler for the highlight button.
-            $('#highlight-button').click(hightlightHighestValue);
+            getData(year, "AccountsPayableCurrent");
         });
-    };
+    });
+}
 
-    function loadSampleData() {
-        var values = [
-            [Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000)],
-            [Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000)],
-            [Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000)]
-        ];
-
-        // Run a batch operation against the Excel object model
-        Excel.run(function (ctx) {
-            // Create a proxy object for the active sheet
-            var sheet = ctx.workbook.worksheets.getActiveWorksheet();
-            // Queue a command to write the sample data to the worksheet
-            sheet.getRange("B3:D5").values = values;
-
-            // Run the queued-up commands, and return a promise to indicate task completion
-            return ctx.sync();
+function getData(year, facts) {
+    fetch('https://ew6mbmqfkj.execute-api.us-east-2.amazonaws.com/test/get-xbrl-facts', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "CIK": 1001601,
+            "year": year,
+            "facts": facts
         })
-        .catch(errorHandler);
-    }
-
-    function hightlightHighestValue() {
-        // Run a batch operation against the Excel object model
-        Excel.run(function (ctx) {
-            // Create a proxy object for the selected range and load its properties
-            var sourceRange = ctx.workbook.getSelectedRange().load("values, rowCount, columnCount");
-
-            // Run the queued-up command, and return a promise to indicate task completion
-            return ctx.sync()
-                .then(function () {
-                    var highestRow = 0;
-                    var highestCol = 0;
-                    var highestValue = sourceRange.values[0][0];
-
-                    // Find the cell to highlight
-                    for (var i = 0; i < sourceRange.rowCount; i++) {
-                        for (var j = 0; j < sourceRange.columnCount; j++) {
-                            if (!isNaN(sourceRange.values[i][j]) && sourceRange.values[i][j] > highestValue) {
-                                highestRow = i;
-                                highestCol = j;
-                                highestValue = sourceRange.values[i][j];
-                            }
-                        }
-                    }
-
-                    cellToHighlight = sourceRange.getCell(highestRow, highestCol);
-                    sourceRange.worksheet.getUsedRange().format.fill.clear();
-                    sourceRange.worksheet.getUsedRange().format.font.bold = false;
-
-                    // Highlight the cell
-                    cellToHighlight.format.fill.color = "orange";
-                    cellToHighlight.format.font.bold = true;
-                })
-                .then(ctx.sync);
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
         })
-        .catch(errorHandler);
-    }
+        .then(data => {
+            console.log(data);
+            populateData(data['AccountsPayableCurrent']);
+        })
+        .catch(error => {
+            console.error('There was a problem with the API request:', error);
+        });
+}
 
-    function displaySelectedCells() {
-        Office.context.document.getSelectedDataAsync(Office.CoercionType.Text,
-            function (result) {
-                if (result.status === Office.AsyncResultStatus.Succeeded) {
-                    showNotification('The selected text is:', '"' + result.value + '"');
-                } else {
-                    showNotification('Error', result.error.message);
-                }
-            });
-    }
+async function populateData(response) {
+    var data = prepareDataObject(response);
 
-    // Helper function for treating errors
-    function errorHandler(error) {
-        // Always be sure to catch any accumulated errors that bubble up from the Excel.run execution
-        showNotification("Error", error);
-        console.log("Error: " + error);
-        if (error instanceof OfficeExtension.Error) {
-            console.log("Debug info: " + JSON.stringify(error.debugInfo));
+    Excel.run(function (ctx) {
+        // make space for the data to be inserted
+        var sheet1 = ctx.workbook.worksheets.getItem("Sheet1");
+        var firstCell = sheet1.getCell(0, 0);
+        var lastCell = sheet1.getCell(data.length - 1, data[0].length - 1);
+        var range = firstCell.getBoundingRect(lastCell).insert('down');
+
+        range.values = data; // insert data
+
+        return ctx.sync();
+    }).catch(function (error) {
+        console.log(error);
+    })
+}
+
+function prepareDataObject(response) {
+    let data = [["val", "fy", "fp", "form", "filed", "end"]];
+    if (response.val !== undefined) {
+        let length = response.val.length;
+        for (let i = 0; i < length; i++) {
+            let row = [];
+            row.push(response.val[i]);
+            row.push(response.fy[i]);
+            row.push(response.fp[i]);
+            row.push(response.form[i]);
+            row.push(response.filed[i]);
+            row.push(response.end[i]);
+            data.push(row);
         }
     }
 
-    // Helper function for displaying notifications
-    function showNotification(header, content) {
-        $("#notification-header").text(header);
-        $("#notification-body").text(content);
-        messageBanner.showBanner();
-        messageBanner.toggleExpansion();
+    return data;
+}
+
+function getYearString(startyear, endyear) {
+    let year = "";
+    console.log(startyear, endyear)
+    for (let i = startyear; i <= endyear; i++) {
+        if (i !== startyear) year += ",";
+        year += i;
+    }
+
+    return year;
+}
+
+(function () {
+
+    Office.onReady(function () {
+        // Office is ready
+        $(document).ready(function () {
+            // The document is ready
+            $('#set-color').click(setColor);
+            $('#get-data').click(getData);
+        });
+    });
+
+    async function setColor() {
+        await Excel.run(async (context) => {
+            testResults();
+            const range = context.workbook.getSelectedRange();
+            range.format.fill.color = 'green';
+
+            await context.sync();
+        }).catch(function (error) {
+            console.log("Error: " + error);
+            if (error instanceof OfficeExtension.Error) {
+                console.log("Debug info: " + JSON.stringify(error.debugInfo));
+            }
+        });
+    }
+
+    async function getData() {
+        await Excel.run(async (context) => {
+            const range = context.workbook.getSelectedRange().load("values, rowCount, columnCount");
+            range.values = range.values[0][0] * 100;
+
+            await context.sync();
+        }).catch(function (error) {
+            console.log("Error: " + error);
+            if (error instanceof OfficeExtension.Error) {
+                console.log("Debug info: " + JSON.stringify(error.debugInfo));
+            }
+        });
     }
 })();
